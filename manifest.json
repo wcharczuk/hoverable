@@ -1,0 +1,40 @@
+{
+	"name": "Hoverable",
+	"version": "0.1",
+	"manifest_version": 2,
+	"description": "Hoverable - an improvement on BetterZoom in that it actually works.",
+	"background": {
+		"scripts": ["background.js"]
+	},
+	"content_scripts": [
+		{
+			"matches": [
+				"http://*/*",
+				"https://*/*"
+			],
+			"css": [
+				"hoverable.css"
+			],
+			"js": [
+				"zepto.min.js",
+				"extension.js"
+			]
+		}
+	],
+	"permissions": [
+		"http://*.flickr.com/photos/*",
+		"http://img.photobucket.com/*",
+		"http://imgclean.com/*",
+		"http://backend.deviantart.com/oembed?url=*",
+		"https://mediacru.sh/*",
+		"http://noembed.com/embed?url=*",
+		"http://instagram.com/*",
+		"http://*.instagram.com/*",
+		"http://tumblr.com/*",
+		"http://*.tumblr.com/*",
+		"http://t.co/*",
+		"http://goo.gl/*",
+		"http://bit.ly/*",
+		"http://tiny.cc/*"
+	]
+}
