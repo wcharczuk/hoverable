@@ -205,6 +205,16 @@ var Hoverable = (function(){
 		'i.imgur.com': 'imgur.com'
 	};
 
+	var getHost = function(url) {
+		var host = getLocation(url).hostname;
+		var pieces = host.split('.');
+		
+		if(pieces.length > 2) {
+			host = pieces[pieces.length - 2] + "." + pieces[pieces.length - 1];
+		}
+		return host;
+	}
+
 	hvr.processLink = function (target) {
 		var media = {};
 
@@ -212,7 +222,9 @@ var Hoverable = (function(){
 			media.type = mediaTypes.image;
 			var href = target.href;
 
-			if(isShortenedUrl(href)) {
+			var host = getHost(href);
+
+			if(isShortenedUrl(host)) {
 				href = followShortenedLink(target);
 			}
 
@@ -221,12 +233,7 @@ var Hoverable = (function(){
 				return media;
 			}
 			else {
-				var host = getLocation(href).hostname;
-				var pieces = host.split('.');
-				
-				if(pieces.length > 2) {
-					host = pieces[pieces.length - 2] + "." + pieces[pieces.length - 1];
-				}
+				host = getHost(href);
 
 				var translatedHost = hostTransaltions[host];
 
@@ -251,8 +258,8 @@ var Hoverable = (function(){
 	    return l;
 	}
 
-	var isShortenedUrl = function(url) {
-		return (/(t.co|goo.gl|bit.ly|tiny.cc)/ig).test(url);
+	var isShortenedUrl = function(host) {
+		return (/(t\.co$|goo\.gl$|bit\.ly$|tiny\.cc$)/ig).test(host);
 	};
 
 	var followShortenedLink = function(target) {
