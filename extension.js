@@ -244,6 +244,7 @@ var Hoverable = (function(){
 
 	hvr.processMedia = function(target) {
 		var media = {};
+		media.type = mediaTypes.invalid;
 
 		var tag = $(target).prop("tagName");
 		if(!(tag in ["A", "IMG"])) {
@@ -262,9 +263,9 @@ var Hoverable = (function(){
 			}
 		}
 
-		if(target.href) {
+		if($(target).prop("tagName") === "A") {
 			media = hvr.processLink(target);
-		} else if(target.src) {
+		} else if($(target).prop("tagName") === "IMG") {
 			media = hvr.processImage(target);
 		}
 
@@ -277,12 +278,8 @@ var Hoverable = (function(){
 
 	hvr.processImage = function (target) {
 		var media = {};
-		if(target) {
-			media.type = mediaTypes.image;
-			media.src = target.src;
-		} else {
-			media.type = mediaTypes.invalid;
-		}
+		media.type = mediaTypes.image;
+		media.src = target.src;
 		return media;
 	}
 
@@ -305,8 +302,8 @@ var Hoverable = (function(){
 
 		if(target.href) {
 			media.type = mediaTypes.image;
+			
 			var href = target.href;
-
 			var host = getHost(href);
 
 			if(isShortenedUrl(host)) {
