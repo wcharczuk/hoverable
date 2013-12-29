@@ -9,6 +9,9 @@ var Hoverable = (function(){
 	};
 
 	var hvr = {};
+
+	hvr.ValidTags = ['A', 'IMG', 'AUDIO', 'VIDEO']
+
 	hvr.showTimer = {};
 	hvr.hideTimer = {};
 	hvr.albumTimer = {};
@@ -27,7 +30,7 @@ var Hoverable = (function(){
 
 
 	hvr.hide = function() {
-		cancelAlbumTimer();
+		cancelAllTimers();
 		$(hvr.loader).show();
 		$(hvr.img).hide();
 		$(hvr.container).hide();
@@ -42,56 +45,63 @@ var Hoverable = (function(){
 			$(hvr.img).append(img);
 			$(hvr.img).show();
 			hvr.positionContainer();
-		}
+		};
 
+		var advanceAlbumImage = function() {
+			var current_index = parseInt($(hvr.img).data("album-index"));
+			var albumLength = parseInt($(hvr.img).data("album-length"));
+			current_index = current_index + 1;
+			var album = $(hvr.img).data("album");
+			if( current_index >= albumLength ) {
+				current_index = 0;
+			}
+
+			$(hvr.img).find("img").hide();
+			$($(hvr.img).find("img")[current_index]).show();
+			$(hvr.img).data("album-index", current_index);
+			hvr.positionContainer();
+			hvr.albumTimer = setTimeout(advanceAlbumImage, 1500);
+		};
+
+		$(hvr.img).empty();
 		$(hvr.img).hide();
 		$(hvr.loader).show();
 
-		if(media.type == mediaTypes.image) {
-			$(hvr.img).empty();
-			var image = new Image();
-
-			$(image).attr('src', media.src);
-
-			$(image).on("load", function() {
-				onImgLoad(image);
-			});
-		} else if (media.type == mediaTypes.album) {
-			$(hvr.img).empty();
-			for(var i = 0; i < media.images.length; i++) {
-				var newImg = media.images[i];
-				$(newImg).hide();
-				if(i == 0) {
-					$(newImg).show();
-					$(newImg).on("load", function() {
-						onImgLoad(newImg);
-						hvr.albumTimer = setTimeout(advanceAlbumImage, 1500);
+		switch(media.type) {
+			case mediaTypes.image:
+				{
+					var image = new Image();
+					$(image).on("load", function() {
+						onImgLoad(image);
 					});
-
-				} else {
-					$(hvr.img).append(newImg);
+					$(image).attr('src', media.src);
 				}
-			}
+				break;
+			case mediaTypes.album: 
+				{
+					for(var i = 0; i < media.images.length; i++) {
+						var imgSrc = media.images[i];
+						var newImg = new Image();
 
-			function advanceAlbumImage() {
-				var current_index = parseInt($(hvr.img).data("album-index"));
-				var albumLength = parseInt($(hvr.img).data("album-length"));
-				current_index = current_index + 1;
-				var album = $(hvr.img).data("album");
-				if( current_index >= albumLength ) {
-					current_index = 0;
+						$(newImg).hide();
+
+						if(i == 0) {
+							$(newImg).on("load", function() {
+								onImgLoad(newImg);
+								hvr.albumTimer = setTimeout(advanceAlbumImage, 1500);
+							});
+							$(newImg).show();
+						}
+
+						$(newImg).attr("src", imgSrc);
+						$(hvr.img).append(newImg);
+					}
+
+					$(hvr.img).data("album-length", media.images.length);
+					$(hvr.img).data("album-index", 0);
+					$(hvr.img).on("click", advanceAlbumImage);
 				}
-
-				$(hvr.img).find("img").hide();
-				$($(hvr.img).find("img")[current_index]).show();
-				$(hvr.img).data("album-index", current_index);
-				hvr.positionContainer();
-				hvr.albumTimer = setTimeout(advanceAlbumImage, 1500);
-			}
-
-			$(hvr.img).data("album-length", media.images.length);
-			$(hvr.img).data("album-index", 0);
-			$(hvr.img).on("click", advanceAlbumImage);
+				break;
 		}
 
 		$(hvr.container).show();
@@ -216,6 +226,13 @@ var Hoverable = (function(){
 		$(hvr.container).css('bottom', bottom);
 	};
 
+	//TIMER MANAGEMENT
+	var cancelAllTimers = function() {
+		cancelHideTimer();
+		cancelShowTimer();
+		cancelAlbumTimer();
+	}
+
 	var cancelHideTimer = function() {
 	    if (hvr.hideTimer) {
 	      clearTimeout(hvr.hideTimer);
@@ -233,10 +250,17 @@ var Hoverable = (function(){
   			clearTimeout(hvr.albumTimer);
   		}
   	}
+  	//END TIMER MANAGEMENT
 
-	var onMouseOut = function(event) {
-		cancelShowTimer();
-		cancelAlbumTimer();
+  	hvr.onMouseOver = function(event) {
+  		cancelAllTimers();
+		hvr.showTimer = setTimeout(function(){
+			hvr.processMedia(event.target)
+		}, hvr.Options.delay);
+  	}
+
+	hvr.onMouseOut = function(event) {
+		cancelAllTimers();
 		hvr.hideTimer = setTimeout(function() {
 			hvr.hide();
 		}, hvr.Options.delay)
@@ -246,21 +270,17 @@ var Hoverable = (function(){
 		var media = {};
 		media.type = mediaTypes.invalid;
 
+		target = resolveTarget(target);
+
 		var tag = $(target).prop("tagName");
-		if(!(tag in ["A", "IMG"])) {
-			var parent = $(target).parent();	
-			if(parent.prop("tagName") == "A") {
-				target = parent[0];
-			}
-			else {
-				while(parent.lenght > 0 && parent.prop("tagName") != "BODY") {
-					parent = parent.parent();
-					if(parent.prop("tagName") == "A") {
-						target = parent[0];
-						break;
-					}
-				} 
-			}
+
+		switch(tag) {
+			case "A":
+				media = hvr.processLink(target);
+				break;
+			case "IMG":
+				media = hvr.processImage(target);
+				break;
 		}
 
 		if($(target).prop("tagName") === "A") {
@@ -278,23 +298,12 @@ var Hoverable = (function(){
 
 	hvr.processImage = function (target) {
 		var media = {};
+
+		//TODO: Detect if the src image is bigger than the displayed image. 
+
 		media.type = mediaTypes.image;
 		media.src = target.src;
 		return media;
-	}
-
-	var hostTransaltions = {
-		'i.imgur.com': 'imgur.com'
-	};
-
-	var getHost = function(url) {
-		var host = getLocation(url).hostname;
-		var pieces = host.split('.');
-		
-		if(pieces.length > 2) {
-			host = pieces[pieces.length - 2] + "." + pieces[pieces.length - 1];
-		}
-		return host;
 	}
 
 	hvr.processLink = function (target) {
@@ -316,13 +325,7 @@ var Hoverable = (function(){
 			}
 			else {
 				host = getHost(href);
-
-				var translatedHost = hostTransaltions[host];
-
-				if(translatedHost) host = translatedHost;
-				
 				var siteModule = siteModules[host];
-
 				if(siteModule) return siteModule.process(target);
 			}
 		}
@@ -340,13 +343,44 @@ var Hoverable = (function(){
 	    return l;
 	}
 
+	var getHost = function(url) {
+		var host = getLocation(url).hostname;
+		var pieces = host.split('.');
+		
+		if(pieces.length > 2) {
+			host = pieces[pieces.length - 2] + "." + pieces[pieces.length - 1];
+		}
+		return host;
+	}
+
+	var resolveTarget = function(target) {
+		var newTarget = target;
+
+		var tag = $(target).prop("tagName");
+		if(!(tag in ["A", "IMG"])) {
+			var parent = $(target).parent();	
+			if(parent.prop("tagName") == "A") {
+				target = parent[0];
+			}
+			else {
+				while(parent.lenght > 0 && parent.prop("tagName") != "BODY") {
+					parent = parent.parent();
+					if(parent.prop("tagName") == "A") {
+						target = parent[0];
+						break;
+					}
+				} 
+			}
+		}
+
+		return newTarget;
+	}
+
 	var isShortenedUrl = function(host) {
 		return (/(t\.co$|goo\.gl$|bit\.ly$|tiny\.cc$)/ig).test(host);
 	};
 
 	var followShortenedLink = function(target) {
-		//special case for twitter links where they already have
-		//the expanded url in the link attributes
 		if($(target).attr('data-expanded-url') != null) {
 			return $(target).attr('data-expanded-url');
 		}
@@ -428,13 +462,7 @@ var Hoverable = (function(){
 					for(var i = 0; i < data.album.images.length; i++) {
 						var imgData = data.album.images[i];
 						var src = imgData.links.original;
-
-						if(i == 0) {
-							media.src = src;
-						}
-						var img = new Image();
-						img.setAttribute("src", src);
-						media.images.push(img);
+						media.images.push(src);
 					}
 				} else {
 					//normal imgur link (non album)
@@ -489,10 +517,10 @@ var Hoverable = (function(){
 
 	$(hvr.media).append(hvr.loader);
 	$(hvr.media).append(hvr.img);
+	$(hvr.container).append(hvr.media)
 
 	$(hvr.container)
-      .append(hvr.media)
-      .mouseleave(onMouseOut)
+      .mouseleave(hvr.onMouseOut)
       .mouseover(cancelHideTimer);
 
 	$(window).on('mousemove', 'body', function(e) {
@@ -523,16 +551,8 @@ var Hoverable = (function(){
 	$(document.body).append(hvr.container);
 
 	$(document.body)
-		.on('mouseover', 	'a, img', {}, function(event) {
-			hvr.showTimer = setTimeout(function(){
-				hvr.processMedia(event.target)
-			}, hvr.Options.delay);
-		})
-		.on('mouseout', 	'a, img', {}, function(event) {
-			hvr.hideTimer = setTimeout(function() {
-				hvr.hide();
-			}, hvr.Options.delay);
-		});
+		.on('mouseover', 	'a, img', {}, hvr.onMouseOver)
+		.on('mouseout', 	'a, img', {}, hvr.onMouseOut);
 
 	return hvr;
 })();
