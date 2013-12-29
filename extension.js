@@ -72,32 +72,48 @@ var Hoverable = (function(){
 		if(media.type == mediaTypes.image) {
 			$(hvr.img).empty();
 			var image = new Image();
+
 			$(image).attr('src', media.src);
-			$(hvr.img).append(image);
 
 			$(image).on("load", function() {
 				$(hvr.loader).hide();
+				$(hvr.img).data("height", image.height);
+				$(hvr.img).data("width", image.width);
+				$(hvr.img).append(image);
 				$(hvr.img).show();
+				hvr.positionContainer();
 			});
 
 			if(hvr.lastUrl == media.src) {
 				$(hvr.loader).hide();
+				$(hvr.img).data("height", image.height);
+				$(hvr.img).data("width", image.width);
+				$(hvr.img).append(image);
 				$(hvr.img).show();
+				hvr.positionContainer();
 			}
 		} else if (media.type == mediaTypes.album) {
 			$(hvr.img).empty();
 			for(var i = 0; i < media.images.length; i++) {
 				var newImg = media.images[i];
 				$(newImg).hide();
-				$(hvr.img).append(newImg);
 
 				if(i == 0) {
 					$(newImg).show();
 					$(newImg).on("load", function() {
+						
+						$(hvr.img).data("height", image.height);
+						$(hvr.img).data("width", image.width);
+	
+						$(hvr.img).append(newImg);
 						$(hvr.loader).hide();
 						$(hvr.img).show();
+						hvr.positionContainer();
+
 						hvr.albumTimer = setTimeout(advanceAlbumImage, 1500);
 					});
+				} else {
+					$(hvr.img).append(newImg);
 				}
 			}
 
@@ -122,17 +138,103 @@ var Hoverable = (function(){
 			$(hvr.img).on("click", advanceAlbumImage);
 		}
 
-		hvr.positionContainer();
 		$(hvr.container).show();
+		hvr.positionContainer();
 	};
 
 	hvr.positionContainer = function() {
+		var padding = 50;
+
 		var window_width = $(window).width();
-		var offset = window_width - (hvr.Mouse.x + 50);
-		$(hvr.img).css('max-width', offset + "px");
-		$(hvr.img).css('max-height', $(window).height());
-		$(hvr.img).find("img").css('max-width', offset + "px");
-		$(hvr.img).find("img").css('max-height', $(window).height());
+		var window_height = $(window).height();
+
+		var image_height = $(hvr.loader).height();
+		var image_width = $(hvr.loader).width();
+
+		if($(hvr.img).css('display') !== 'none') {
+			image_height = $(hvr.img).data("height");
+			image_width = $(hvr.img).data("width");
+		}
+
+		var landscape = image_height < image_width;
+
+		var image_height_half = image_height >> 1;
+		var image_width_half = image_width >> 1;
+
+		var mouse_x = hvr.Mouse.x;
+		var mouse_y = hvr.Mouse.y;
+
+		var window_width_buffer_left = window_width - mouse_x;
+		var window_width_buffer_right = window_width - (window_width - mouse_x);
+
+		var window_height_buffer_up = window_height - mouse_y;
+		var window_height_buffer_down = window_height - (window_height - mouse_y);
+
+		var window_x_mid = window_width >> 1; //div by 2
+		var window_y_mid = window_height >> 1; //div by 2
+
+		var max_width = window_width;
+		var max_height = window_height;
+
+		var left = null;
+		var top = null;
+		var right = null;
+		var bottom = null;
+
+		var height_buffer = window_height_buffer_down;
+		if(mouse_y > window_y_mid) {
+			height_buffer = window_height_buffer_up;
+		}
+
+		var width_buffer = window_width_buffer_right;
+		if(mouse_x > window_x_mid) {
+			width_buffer = window_width_buffer_left
+		}
+
+		var aspect_ratio = image_width / image_height;
+
+		if(landscape) {
+			if(image_width > width_buffer) {
+				if(mouse_x > window_x_mid) {
+					left = mouse_x - (width_buffer + padding);
+				} else {
+					left = mouse_x + width_buffer + padding;
+				}
+				top = mouse_y - image_height_half;
+			} else {
+				if(mouse_x > window_x_mid) {
+					left = mouse_x - (image_width + padding);
+					
+				} else {
+					left = mouse_x + image_width + padding;
+				}
+			}
+			max_width = width_buffer;
+
+
+		} else { //portrait
+			if(image_height > height_buffer) {
+				max_height = window_height;
+				top = 0;
+			} else {
+				top = mouse_y - image_height_half;
+			}
+		}
+
+		//max-widths ...
+		$(hvr.container).css('max-width', max_width + "px");
+		$(hvr.container).css('max-height', max_height + "px");
+		if($(hvr.img).css('display') !== 'none') {
+			$(hvr.img).css('max-width', max_width + "px");
+			$(hvr.img).css('max-height', max_height + "px");
+			$(hvr.img).find("img").css('max-width', max_width + "px");
+			$(hvr.img).find("img").css('max-height', max_height + "px");
+		}
+
+		if(left != null) $(hvr.container).css('left', left);
+		if(top != null) $(hvr.container).css('top', top);
+		if(right != null) $(hvr.container).css('right', right);
+		if(bottom != null) $(hvr.container).css('bottom', bottom);
 	};
 
 	var cancelHideTimer = function() {
