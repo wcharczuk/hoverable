@@ -13,8 +13,6 @@ var Hoverable = (function(){
 	hvr.hideTimer = {};
 	hvr.albumTimer = {};
 
-	hvr.lastUrl = '';
-
 	hvr.Options = {
 		padding : 0,
 		delay : 400,
@@ -58,22 +56,18 @@ var Hoverable = (function(){
 			$(image).on("load", function() {
 				onImgLoad(image);
 			});
-
-			if(hvr.lastUrl == media.src) {
-				onImgLoad(image);
-			}
 		} else if (media.type == mediaTypes.album) {
 			$(hvr.img).empty();
 			for(var i = 0; i < media.images.length; i++) {
 				var newImg = media.images[i];
 				$(newImg).hide();
-
 				if(i == 0) {
 					$(newImg).show();
 					$(newImg).on("load", function() {
 						onImgLoad(newImg);
 						hvr.albumTimer = setTimeout(advanceAlbumImage, 1500);
 					});
+
 				} else {
 					$(hvr.img).append(newImg);
 				}
@@ -195,6 +189,11 @@ var Hoverable = (function(){
 		if(top < 0) top = 0;
 		if(left < 0) left = 0;
 
+		if(top + final_height > window_height) {
+			top = null;
+			bottom = 0;
+		}
+
 		max_width = final_width;
 		max_height = final_height;
 
@@ -211,10 +210,10 @@ var Hoverable = (function(){
 			$(hvr.img).find("img").css('max-height', max_height + "px");
 		}
 
-		if(left != null) $(hvr.container).css('left', left);
-		if(top != null) $(hvr.container).css('top', top);
-		if(right != null) $(hvr.container).css('right', right);
-		if(bottom != null) $(hvr.container).css('bottom', bottom);
+		$(hvr.container).css('left', left);
+		$(hvr.container).css('top', top);
+		$(hvr.container).css('right', right);
+		$(hvr.container).css('bottom', bottom);
 	};
 
 	var cancelHideTimer = function() {
@@ -278,9 +277,13 @@ var Hoverable = (function(){
 
 	hvr.processImage = function (target) {
 		var media = {};
-
-		media.type = mediaTypes.image;
-		media.src = target.src;
+		if(target) {
+			media.type = mediaTypes.image;
+			media.src = target.src;
+		} else {
+			media.type = mediaTypes.invalid;
+		}
+		return media;
 	}
 
 	var hostTransaltions = {
