@@ -59,18 +59,14 @@ var Hoverable = (function(){
 	};
 
 	hvr.showImage = function(media) {
-		var onImgLoad = function(img) {
-			$(hvr.loader).hide();
-			$(hvr.img).data("height", img.height);
-			$(hvr.img).data("width", img.width);
-			$(hvr.img).append(img);
-			$(hvr.img).show();
-			hvr.positionContainer();
-		};
-
 		var image = new Image();
 		$(image).on("load", function() {
-			onImgLoad(image);
+			$(hvr.loader).hide();
+			$(hvr.img).data("height", image.height);
+			$(hvr.img).data("width", image.width);
+			$(hvr.img).append(image);
+			$(hvr.img).show();
+			hvr.positionContainer();
 		});
 		$(image).attr('src', media.src);
 	}
