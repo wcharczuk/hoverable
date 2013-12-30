@@ -47,20 +47,50 @@ var Hoverable = (function(){
 			hvr.positionContainer();
 		};
 
+		var onAlbumImgLoad = function(img) {
+			$(hvr.loader).hide();
+			$(hvr.img).find("img").hide();
+
+			debugger;
+			$(hvr.img).data("height", img.height);
+			$(hvr.img).data("width", img.width);
+
+			$(img).data("original-width", img.height);
+			$(img).data("original-width", img.width);
+
+			$(img).attr('loaded', "1");
+			$(img).show();
+			$(hvr.img).show();
+			hvr.albumTimer = setTimeout(advanceAlbumImage, 1500);
+		}
+
 		var advanceAlbumImage = function() {
+			
 			var current_index = parseInt($(hvr.img).data("album-index"));
 			var albumLength = parseInt($(hvr.img).data("album-length"));
+
 			current_index = current_index + 1;
-			var album = $(hvr.img).data("album");
+
 			if( current_index >= albumLength ) {
 				current_index = 0;
 			}
 
-			$(hvr.img).find("img").hide();
-			$($(hvr.img).find("img")[current_index]).show();
+			var image = $(hvr.img).find("img")[current_index];
+			var src = $(image).attr("deferred-src");
+			var isLoaded = $(image).attr("loaded") === "1";
+
+			if(!isLoaded) {
+				$(image).on("load", function(e) {
+					onAlbumImgLoad(image);
+				});
+				$(image).attr("src", src);
+			} else {
+				$(hvr.img).find("img").hide();
+				$(image).show();
+				hvr.albumTimer = setTimeout(advanceAlbumImage, 1500);
+			}
+
 			$(hvr.img).data("album-index", current_index);
-			hvr.positionContainer();
-			hvr.albumTimer = setTimeout(advanceAlbumImage, 1500);
 		};
 
 		$(hvr.img).empty();
@@ -77,7 +107,7 @@ var Hoverable = (function(){
 					$(image).attr('src', media.src);
 				}
 				break;
-			case mediaTypes.album: 
+			case mediaTypes.album:
 				{
 					for(var i = 0; i < media.images.length; i++) {
 						var imgSrc = media.images[i];
@@ -86,20 +116,18 @@ var Hoverable = (function(){
 						$(newImg).hide();
 
 						if(i == 0) {
-							$(newImg).on("load", function() {
-								onImgLoad(newImg);
-								hvr.albumTimer = setTimeout(advanceAlbumImage, 1500);
-							});
 							$(newImg).show();
+							$(newImg).on("load", function() {
+								onAlbumImgLoad(newImg);
+							});
+							$(newImg).attr("src", imgSrc);
 						}
 
-						$(newImg).attr("src", imgSrc);
-						$(hvr.img).append(newImg);
+						$(newImg).attr("deferred-src", imgSrc);
 					}
 
 					$(hvr.img).data("album-length", media.images.length);
 					$(hvr.img).data("album-index", 0);
-					$(hvr.img).on("click", advanceAlbumImage);
 				}
 				break;
 		}
@@ -299,10 +327,16 @@ var Hoverable = (function(){
 	hvr.processImage = function (target) {
 		var media = {};
 
-		//TODO: Detect if the src image is bigger than the displayed image. 
+		var sizeCheck = new Image();
+		$(sizeCheck).attr('src', target.src);
 
-		media.type = mediaTypes.image;
-		media.src = target.src;
+		if(sizeCheck.height > $(target).height() || sizeCheck.width > $(target).width()) {
+			media.type = mediaTypes.image;
+			media.src = target.src;
+		} else {
+			media.type = mediaTypes.invalid;
+		}
+
 		return media;
 	}
 
@@ -519,10 +553,6 @@ var Hoverable = (function(){
 	$(hvr.media).append(hvr.img);
 	$(hvr.container).append(hvr.media)
 
-	$(hvr.container)
-      .mouseleave(hvr.onMouseOut)
-      .mouseover(cancelHideTimer);
-
 	$(window).on('mousemove', 'body', function(e) {
 		e = e || window.event;
 	    var cursor = {
@@ -549,6 +579,10 @@ var Hoverable = (function(){
 	});
 
 	$(document.body).append(hvr.container);
+
+	$(hvr.container)
+      .mouseleave(hvr.onMouseOut)
+      .mouseover(cancelHideTimer);
 
 	$(document.body)
 		.on('mouseover', 	'a, img', {}, hvr.onMouseOver)
