@@ -325,12 +325,6 @@ var Hoverable = (function(){
 				break;
 		}
 
-		if($(target).prop("tagName") === "A") {
-			media = hvr.processLink(target);
-		} else if($(target).prop("tagName") === "IMG") {
-			media = hvr.processImage(target);
-		}
-
 		if(media.type && media.type != mediaTypes.invalid) {
 			hvr.show(media);
 		} else {
@@ -405,16 +399,17 @@ var Hoverable = (function(){
 		var newTarget = target;
 
 		var tag = $(target).prop("tagName");
-		if(!(tag in ["A", "IMG"])) {
-			var parent = $(target).parent();	
-			if(parent.prop("tagName") == "A") {
-				target = parent[0];
+		if(!(tag in hvr.ValidTags)) {
+			var parent = $(target).parent();
+
+			if(parent.prop("tagName") === "A") {
+				newTarget = parent[0];
 			}
 			else {
 				while(parent.lenght > 0 && parent.prop("tagName") != "BODY") {
 					parent = parent.parent();
-					if(parent.prop("tagName") == "A") {
-						target = parent[0];
+					if(parent.prop("tagName") === "A") {
+						newTarget = parent[0];
 						break;
 					}
 				} 
@@ -472,13 +467,7 @@ var Hoverable = (function(){
 	}
 
 	function parseJsonResult(response) {
-		var obj = {};
-		try {
-			obj = eval(response);
-		} catch(ex) {
-			obj = eval("(" + response + ")");
-		}
-		return obj;
+		return JSON.parse(response);
 	}
 
 	var siteModules = {
@@ -504,7 +493,7 @@ var Hoverable = (function(){
 
 					var raw_result = $.ajax({ url : apiURL, dataType: "json", async: false });
 
-					var data = parseJsonResult(raw_result.response);
+					var data = parseJsonResult(raw_result.responseText);
 					media.images = [];
 
 					for(var i = 0; i < data.album.images.length; i++) {
@@ -538,7 +527,9 @@ var Hoverable = (function(){
 				media.type = mediaTypes.image;
 				var results = getHtml(target.href);
 				var page = $(results);
+				
 				var photoDiv = page.find(".LikeableFrame.iMedia > div").attr('src');
+
 				if(photoDiv) {
 					media.src = photoDiv.attr("src");
 				} else {
@@ -552,15 +543,52 @@ var Hoverable = (function(){
 
 				return media;
 			}
-		}, 
+		},
+		"flickr.com" : {
+			process : function(target) {
+				var media = {};
+				media.type = mediaTypes.image;
+
+				var metaUrl = "http://www.flickr.com/services/oembed/?format=json&url=" + encodeURIComponent(target.href);
+				var response = $.ajax({ url : metaUrl, async: false});
+				var metadata = parseJsonResult(response.responseText);
+
+				media.src = metadata.url;
+				return media;
+			}
+		},
 		"facebook.com" : {
 			process : function(target) {
 				var media = {};
 				media.type = mediaTypes.invalid;
+				var photoLinkExpr = /facebook\.com\/photo.php\?/ig;
+
+				if(photoLinkExpr.test(target.href) && $(target).attr('ajaxify')) {
+					media.type = mediaTypes.image;
+					var ajaxLink = $(target).attr('ajaxify');
+					var srcExpr = /src=([^\&]+)/ig;
+					var urlMatches = ajaxLink.match(srcExpr)[0];
+					media.src = decodeURIComponent(urlMatches.replace("src=", ""));
+				}
 
 				return media;
 			}
 		},
+		"steampowered.com" : {
+			process : function(target) {
+				var media = {};
+
+				var cloudExpr = /^cloud(?:-\d)?.steampowered.com$/i;
+				if(cloudExpr.test(target.href)) {
+					media.type = mediaTypes.image;
+					media.src = target.href;
+				} else {
+					media.type = mediaTypes.invalid;
+				}
+
+				return media;
+			}
+		}
 	};
 
 	$(hvr.media).append(hvr.loader);
