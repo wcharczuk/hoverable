@@ -37,7 +37,28 @@ var Hoverable = (function(){
 	};
 
 	hvr.show = function(media) {
-		
+		$(hvr.img).empty();
+		$(hvr.img).hide();
+		$(hvr.loader).show();
+
+		switch(media.type) {
+			case mediaTypes.image:
+				{
+					hvr.showImage(media);
+				}
+				break;
+			case mediaTypes.album:
+				{
+					hvr.showAlbum(media);
+				}
+				break;
+		}
+
+		$(hvr.container).show();
+		hvr.positionContainer();
+	};
+
+	hvr.showImage = function(media) {
 		var onImgLoad = function(img) {
 			$(hvr.loader).hide();
 			$(hvr.img).data("height", img.height);
@@ -47,93 +68,86 @@ var Hoverable = (function(){
 			hvr.positionContainer();
 		};
 
-		var onAlbumImgLoad = function(img) {
+		var image = new Image();
+		$(image).on("load", function() {
+			onImgLoad(image);
+		});
+		$(image).attr('src', media.src);
+	}
+
+	var arrayToCsv = function(targetArray) {
+		var encoded_pieces = [];
+		for(var i = 0; i < targetArray.length; i++) {
+			encoded_pieces.push(encodeURIComponent(targetArray[i]));
+		}
+		return encoded_pieces.join(",");
+	};
+
+	var csvToArray = function(csv) {
+		var pieces = csv.split(',');
+		var decoded_pieces = [];
+		for(var i = 0; i < pieces.length; i++) {
+			var decoded = decodeURIComponent(pieces[i]);
+			decoded_pieces.push(decoded);
+		}
+		return decoded_pieces;
+	};
+
+	hvr.showAlbum = function(media) {
+		//set up the album
+		$(hvr.img).data("album", arrayToCsv(media.images));
+
+		//set up the first image.
+		var firstImage = new Image();
+		$(firstImage).on("load", function() {
 			$(hvr.loader).hide();
-			$(hvr.img).find("img").hide();
-
-			debugger;
-			$(hvr.img).data("height", img.height);
-			$(hvr.img).data("width", img.width);
-
-			$(img).data("original-width", img.height);
-			$(img).data("original-width", img.width);
-
-			$(img).attr('loaded', "1");
-			$(img).show();
+			$(hvr.img).data("height", firstImage.height);
+			$(hvr.img).data("width", firstImage.width);
+			$(hvr.img).append(firstImage);
 			$(hvr.img).show();
-			hvr.albumTimer = setTimeout(advanceAlbumImage, 1500);
+			hvr.positionContainer();
+			hvr.albumTimer = setTimeout(hvr.advanceAlbumIndex, 1500);
+		});
+		$(firstImage).attr('src', media.images[0]);
+
+		$(hvr.img).data("album-length", media.images.length);
+		$(hvr.img).data("album-index", 0);
+	};
+
+	hvr.advanceAlbumIndex = function() {
+		var current_index = parseInt($(hvr.img).data("album-index"));
+		var albumLength = parseInt($(hvr.img).data("album-length"));
+
+		current_index = current_index + 1;
+
+		if( current_index >= albumLength ) {
+			current_index = 0;
 		}
 
-		var advanceAlbumImage = function() {
-			
-			var current_index = parseInt($(hvr.img).data("album-index"));
-			var albumLength = parseInt($(hvr.img).data("album-length"));
+		$(hvr.img).data("album-index", current_index);
 
-			current_index = current_index + 1;
+		//handle swapping the actual images.
+		var image = $(hvr.img).find("img")[current_index];
 
-			if( current_index >= albumLength ) {
-				current_index = 0;
-			}
-
-			var image = $(hvr.img).find("img")[current_index];
-			var src = $(image).attr("deferred-src");
-			var isLoaded = $(image).attr("loaded") === "1";
-
-			if(!isLoaded) {
-				$(image).on("load", function(e) {
-					onAlbumImgLoad(image);
-				});
-				$(image).attr("src", src);
-			} else {
+		if(image) {
+			$(hvr.img).find("img").hide();
+			$(image).show();
+		} else {
+			var album = csvToArray($(hvr.img).data("album"));
+			var src = album[current_index];
+			image = new Image();
+			$(image).on("load", function() {
 				$(hvr.img).find("img").hide();
+				$(hvr.img).data("height", image.height);
+				$(hvr.img).data("width", image.width);
+				$(hvr.img).append(image);
 				$(image).show();
-				hvr.albumTimer = setTimeout(advanceAlbumImage, 1500);
-			}
-
-			$(hvr.img).data("album-index", current_index);
-		};
-
-		$(hvr.img).empty();
-		$(hvr.img).hide();
-		$(hvr.loader).show();
-
-		switch(media.type) {
-			case mediaTypes.image:
-				{
-					var image = new Image();
-					$(image).on("load", function() {
-						onImgLoad(image);
-					});
-					$(image).attr('src', media.src);
-				}
-				break;
-			case mediaTypes.album:
-				{
-					for(var i = 0; i < media.images.length; i++) {
-						var imgSrc = media.images[i];
-						var newImg = new Image();
-
-						$(newImg).hide();
-
-						if(i == 0) {
-							$(newImg).show();
-							$(newImg).on("load", function() {
-								onAlbumImgLoad(newImg);
-							});
-							$(newImg).attr("src", imgSrc);
-						}
-
-						$(newImg).attr("deferred-src", imgSrc);
-					}
-
-					$(hvr.img).data("album-length", media.images.length);
-					$(hvr.img).data("album-index", 0);
-				}
-				break;
+				hvr.positionContainer();
+			});
+			$(image).attr('src', src);
 		}
 
-		$(hvr.container).show();
-		hvr.positionContainer();
+		hvr.albumTimer = setTimeout(hvr.advanceAlbumIndex, 1500);
 	};
 
 	hvr.positionContainer = function() {
