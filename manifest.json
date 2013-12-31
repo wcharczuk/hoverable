@@ -21,6 +21,10 @@
 			]
 		}
 	],
+	"icons": {
+			"48": "icon48.png",
+			"128": "icon128.png" 
+	},
 	"permissions": [
 		"http://*.flickr.com/photos/*",
 		"http://img.photobucket.com/*",
