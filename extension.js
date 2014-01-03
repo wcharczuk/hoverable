@@ -614,8 +614,7 @@ var Hoverable = (function(){
 					media.src = $(imgLink).attr("href");
 				}
 				else {
-					media.type = mediaTypes.image;
-					media.src = target.href;
+					media.type = mediaTypes.invalid;
 				}
 				return media;
 			}
