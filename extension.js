@@ -352,18 +352,17 @@ var Hoverable = (function(){
 			
 			var href = target.href;
 			var host = getHost(href);
+			var siteModule = siteModules[host];
 
 			if(isShortenedUrl(host)) {
 				href = followShortenedLink(target);
 			}
 
-			if(isImageLink(href)) {
+			if(isImageLink(href, siteModule)) {
 				media.src = href;
 				return media;
 			}
 			else {
-				host = getHost(href);
-				var siteModule = siteModules[host];
 				if(siteModule) return siteModule.process(target);
 			}
 		}
@@ -434,8 +433,17 @@ var Hoverable = (function(){
 		return url;
 	}
 
-	var isImageLink = function(url) {
-		return (/\.(gif|jpg|jpeg|png|apng|tiff)/ig).test(url);
+	var isImageLink = function(url, siteModule) {
+		var isException = false;
+		if(siteModule && siteModule.imgLinkException) {
+			isException = siteModule.imgLinkException(url)
+		}
+
+		if(isException) {
+			return false;
+		} else {
+			return (/\.(gif|jpg|jpeg|png|apng|tiff)/ig).test(url);
+		}
 	}
 
 	var fetchResponse = function(url) {
@@ -582,6 +590,34 @@ var Hoverable = (function(){
 					media.type = mediaTypes.invalid;
 				}
 
+				return media;
+			}
+		}, 
+		"wikipedia.org" : {
+			imgLinkException : function(url) {
+				return (/file:/ig).test(url);
+			},
+			process : function(target) {
+				var media = {};
+
+				var fileExpr = /file:/ig;
+
+				var href = target.href;
+
+				if(fileExpr.test(href)) {
+					var results = getHtml(href);
+					var page = $(results);
+
+					var imgDiv = page.find("div.fullImageLink");
+					var imgLink = imgDiv.find("a")[0];
+
+					media.type = mediaTypes.image;
+					media.src = $(imgLink).attr("href");
+				}
+				else {
+					media.type = mediaTypes.image;
+					media.src = target.href;
+				}
 				return media;
 			}
 		}
