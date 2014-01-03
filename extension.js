@@ -504,8 +504,11 @@ var Hoverable = (function(){
 						var src = imgData.links.original;
 						media.images.push(src);
 					}
-				} else {
+				} else if(groups && !groups[2]) {
 					//normal imgur link (non album)
+					var hashes = groups[1].split(/[&,]/);
+					media.type = mediaTypes.image;
+					media.src = 'http://i.imgur.com/' + hashes[0] + '.jpg'
 				}
 
 				return media;

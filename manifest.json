@@ -1,8 +1,9 @@
 {
 	"name": "Hoverable",
+	"short_name" : "Hoverable",
 	"version": "0.5",
 	"manifest_version": 2,
-	"description": "Hoverable - an improvement on BetterZoom in that it actually works.",
+	"description": "Hoverable - automatically enlarge photo links.",
 	"background": {
 		"scripts": ["background.js"]
 	},
@@ -23,7 +24,7 @@
 	],
 	"icons": {
 			"48": "icon48.png",
-			"128": "icon128.png" 
+			"128": "icon128.png"
 	},
 	"permissions": [
 		"http://*.flickr.com/photos/*",
@@ -39,6 +40,7 @@
 		"http://t.co/*",
 		"http://goo.gl/*",
 		"http://bit.ly/*",
-		"http://tiny.cc/*"
+		"http://tiny.cc/*",
+		"http://*.wikipedia.org/*"
 	]
 }
