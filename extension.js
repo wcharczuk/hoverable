@@ -10,7 +10,7 @@ var Hoverable = (function(){
 
 	var hvr = {};
 
-	hvr.ValidTags = ['A', 'IMG', 'AUDIO', 'VIDEO']
+	hvr.ValidTags = ['A', 'IMG', 'AUDIO', 'VIDEO'];
 
 	hvr.showTimer = {};
 	hvr.hideTimer = {};
@@ -69,7 +69,7 @@ var Hoverable = (function(){
 			hvr.positionContainer();
 		});
 		$(image).attr('src', media.src);
-	}
+	};
 
 	var arrayToCsv = function(targetArray) {
 		var encoded_pieces = [];
@@ -245,7 +245,6 @@ var Hoverable = (function(){
 		max_width = final_width;
 		max_height = final_height;
 
-
 		//from here on out this assumes we've squared away all key variables.
 
 		//max-widths ...
@@ -269,7 +268,7 @@ var Hoverable = (function(){
 		cancelHideTimer();
 		cancelShowTimer();
 		cancelAlbumTimer();
-	}
+	};
 
 	var cancelHideTimer = function() {
 	    if (hvr.hideTimer) {
@@ -287,7 +286,7 @@ var Hoverable = (function(){
   		if(hvr.albumTimer) {
   			clearTimeout(hvr.albumTimer);
   		}
-  	}
+  	};
   	//END TIMER MANAGEMENT
 
   	hvr.onMouseOver = function(event) {
@@ -295,7 +294,7 @@ var Hoverable = (function(){
 		hvr.showTimer = setTimeout(function(){
 			hvr.processMedia(event.target)
 		}, hvr.Options.delay);
-  	}
+  	};
 
 	hvr.onMouseOut = function(event) {
 		cancelAllTimers();
@@ -342,7 +341,7 @@ var Hoverable = (function(){
 		}
 
 		return media;
-	}
+	};
 
 	hvr.processLink = function (target) {
 		var media = {};
@@ -378,7 +377,7 @@ var Hoverable = (function(){
 		var l = document.createElement("a");
 	    l.href = url;
 	    return l;
-	}
+	};
 
 	var getHost = function(url) {
 		var host = getLocation(url).hostname;
@@ -388,7 +387,7 @@ var Hoverable = (function(){
 			host = pieces[pieces.length - 2] + "." + pieces[pieces.length - 1];
 		}
 		return host;
-	}
+	};
 
 	var resolveTarget = function(target) {
 		var newTarget = target;
@@ -401,7 +400,7 @@ var Hoverable = (function(){
 				newTarget = parent[0];
 			}
 			else {
-				while(parent.lenght > 0 && parent.prop("tagName") != "BODY") {
+				while(parent.lenght > 0 && parent.prop("tagName") !== "BODY") {
 					parent = parent.parent();
 					if(parent.prop("tagName") === "A") {
 						newTarget = parent[0];
@@ -412,7 +411,7 @@ var Hoverable = (function(){
 		}
 
 		return newTarget;
-	}
+	};
 
 	var isShortenedUrl = function(host) {
 		return (/(t\.co$|goo\.gl$|bit\.ly$|tiny\.cc$)/ig).test(host);
@@ -431,7 +430,7 @@ var Hoverable = (function(){
 		}
 
 		return url;
-	}
+	};
 
 	var isImageLink = function(url, siteModule) {
 		var isException = false;
@@ -444,23 +443,23 @@ var Hoverable = (function(){
 		} else {
 			return (/\.(gif|jpg|jpeg|png|apng|tiff)/ig).test(url);
 		}
-	}
+	};
 
 	var fetchResponse = function(url) {
 		var result = $.ajax({ url: url, async: false });
 		return result.responseText;
-	}
+	};
 
-	function isRedirect(response) {
+	var isRedirect = function(response) {
 		return (/\<noscript\>\<META http-equiv\=\"refresh\"/ig).test(response);
-	}
+	};
 
-	function extractRedirectUrl(response) {
+	var extractRedirectUrl = function(response) {
 		var expr = /URL=([^"]+)/ig;
 		return response.match(expr)[0].replace("URL=", "");
-	}
+	};
 
-	function getHtml(url) {
+	var getHtml = function(url) {
 		var response = fetchResponse(url);
 		while(isRedirect(response)) {
 			url = extractRedirectUrl(response);
@@ -468,11 +467,11 @@ var Hoverable = (function(){
 		}
 
 		return response;
-	}
+	};
 
-	function parseJsonResult(response) {
+	var parseJsonResult = function(response) {
 		return JSON.parse(response);
-	}
+	};
 
 	var siteModules = {
 		"imgur.com" : {
@@ -625,7 +624,7 @@ var Hoverable = (function(){
 
 	$(hvr.media).append(hvr.loader);
 	$(hvr.media).append(hvr.img);
-	$(hvr.container).append(hvr.media)
+	$(hvr.container).append(hvr.media);
 
 	$(window).on('mousemove', 'body', function(e) {
 		e = e || window.event;
