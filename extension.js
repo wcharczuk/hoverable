@@ -355,6 +355,8 @@ var Hoverable = (function(){
 
 			if(isShortenedUrl(host)) {
 				href = followShortenedLink(target);
+				host = getHost(href);
+				siteModule = siteModules[host];
 			}
 
 			if(isImageLink(href, siteModule)) {
