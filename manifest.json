@@ -1,7 +1,7 @@
 {
 	"name": "Hoverable",
 	"short_name" : "Hoverable",
-	"version": "0.5",
+	"version": "0.6",
 	"manifest_version": 2,
 	"description": "Hoverable - automatically enlarge photo links.",
 	"background": {
