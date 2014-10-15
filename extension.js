@@ -1,3 +1,7 @@
+String.prototype.endsWith = function(suffix) {
+    return this.indexOf(suffix, this.length - suffix.length) !== -1;
+};
+
 var Hoverable = (function(){
 
 	var mediaTypes = {
@@ -10,7 +14,7 @@ var Hoverable = (function(){
 
 	var hvr = {};
 
-	hvr.ValidTags = ['A', 'IMG', 'AUDIO', 'VIDEO'];
+	hvr.ValidTags = ['A', 'IMG'];
 
 	hvr.showTimer = {};
 	hvr.hideTimer = {};
@@ -23,10 +27,11 @@ var Hoverable = (function(){
 
 	hvr.Mouse = {};
 
-	hvr.container 	= $('<div class="hoverable-container"></div>');
-	hvr.media 		= $('<div class="hoverable-media"></div>');
-	hvr.loader 		= $('<div class="hoverable-loader"></div>');
-	hvr.img 		= $('<div class="hoverable-image"/>');
+	hvr.container 	 = $('<div class="hoverable-container"></div>');
+	hvr.media 		 = $('<div class="hoverable-media"></div>');
+	hvr.loader 		 = $('<div class="hoverable-loader"></div>');
+	hvr.img 		 = $('<div class="hoverable-image"/>');
+	hvr.video 		 = $('<div class="hoverable-video"/>');
 
 
 	hvr.hide = function() {
@@ -34,6 +39,7 @@ var Hoverable = (function(){
 		$(hvr.loader).show();
 		$(hvr.img).hide();
 		$(hvr.container).hide();
+		$(hvr.media).attr("data-media-type", "none");
 	};
 
 	hvr.show = function(media) {
@@ -52,24 +58,73 @@ var Hoverable = (function(){
 					hvr.showAlbum(media);
 				}
 				break;
+			case mediaTypes.video:
+				{
+					hvr.showVideo(media);
+				}
+				break;
 		}
 
+		//shows the loading image.
 		$(hvr.container).show();
+		//positions the container based on the loading image.
 		hvr.positionContainer();
 	};
 
 	hvr.showImage = function(media) {
+		$(hvr.video).hide();
+
 		var image = new Image();
+		image.setAttribute("class", "hoverable-media-image");
+
+		$(".hoverable-media .hoverable-media-image").remove();
+
 		$(image).on("load", function() {
 			$(hvr.loader).hide();
-			$(hvr.img).data("height", image.height);
-			$(hvr.img).data("width", image.width);
+			$(hvr.media).attr("data-media-type", "image");
+			$(hvr.media).attr("data-media-height", image.height);
+			$(hvr.media).attr("data-media-width", image.width);
 			$(hvr.img).append(image);
 			$(hvr.img).show();
 			hvr.positionContainer();
 		});
 		$(image).attr('src', media.src);
 	};
+
+	hvr.showVideo = function(media) {
+		$(hvr.img).hide();
+		
+		//clear all elements of class "hoverable-media-video"
+		$(".hoverable-media .hoverable-media-video").remove();
+
+		var video = document.createElement("video");
+		video.setAttribute("class", "hoverable-media-video");
+		video.setAttribute("autoplay", "true");
+		video.setAttribute("loop", "true");
+		video.setAttribute("mute", "true");
+		video.setAttribute("preload", "true");
+
+		var source1 = document.createElement("source");
+		source1.setAttribute("src", media.src_webm);
+		source1.setAttribute("type", "video/webm");
+
+		var source2 = document.createElement("source");
+		source2.setAttribute("src", media.src_mp4);
+		source2.setAttribute("type", "video/mp4");
+
+		$(video).on("loadedmetadata", function() {
+			$(hvr.loader).hide();
+			$(hvr.media).attr("data-media-type", "video");
+			$(hvr.media).attr("data-media-height", video.videoHeight);
+			$(hvr.media).attr("data-media-width", video.videoWidth);
+			$(hvr.video).show();
+			hvr.positionContainer();
+		})
+
+		video.appendChild(source1);
+		video.appendChild(source2);
+		$(hvr.video).append(video);
+	}
 
 	var arrayToCsv = function(targetArray) {
 		var encoded_pieces = [];
@@ -97,8 +152,9 @@ var Hoverable = (function(){
 		var firstImage = new Image();
 		$(firstImage).on("load", function() {
 			$(hvr.loader).hide();
-			$(hvr.img).data("height", firstImage.height);
-			$(hvr.img).data("width", firstImage.width);
+			$(hvr.media).attr("data-media-type", "image");
+			$(hvr.media).attr("data-media-height", firstImage.height);
+			$(hvr.media).attr("data-media-width", firstImage.width);
 			$(hvr.img).append(firstImage);
 			$(hvr.img).show();
 			hvr.positionContainer();
@@ -155,9 +211,9 @@ var Hoverable = (function(){
 		var image_height = $(hvr.loader).height();
 		var image_width = $(hvr.loader).width();
 
-		if($(hvr.img).css('display') !== 'none') { //if the image is showing
-			image_height = $(hvr.img).data("height");
-			image_width = $(hvr.img).data("width");
+		if($(hvr.media).attr("data-media-type") !== 'none') { //if the image is showing
+			image_height = $(hvr.media).attr("data-media-height");
+			image_width = $(hvr.media).attr("data-media-width");
 		}
 
 		var landscape = image_height < image_width;
@@ -203,8 +259,7 @@ var Hoverable = (function(){
 		var final_height = image_height;
 
 		if (landscape) { //means we care about fitting the width more than the height. 
-			if(image_width > width_buffer) final_width = width_buffer - padding;
-
+			if(image_width > width_buffer) { final_width = width_buffer - padding; }
 			final_height = final_width / aspect_ratio;
 		} else { //portrait mode bitches.
 			if (image_height > window_height) final_height = window_height;
@@ -223,8 +278,13 @@ var Hoverable = (function(){
 			if(orient_left) left = mouse_x - (final_width + padding);
 			else 			left = mouse_x + padding;
 			
-			if(final_height >= window_height) 	top = 0;
-			else 								top =  mouse_y - final_height_half;
+			if(orient_up) {
+				top =  mouse_y - final_height;
+			} else {
+				if(final_height >= window_height) 	{ top = 0; }
+				else 								{ top =  mouse_y - final_height_half; }
+			}
+			
 
 		} else { //portrait
 			if(image_height > window_height) 	top = 0;
@@ -300,7 +360,7 @@ var Hoverable = (function(){
 		cancelAllTimers();
 		hvr.hideTimer = setTimeout(function() {
 			hvr.hide();
-		}, hvr.Options.delay)
+		}, hvr.Options.delay);
 	};
 
 	hvr.processMedia = function(target) {
@@ -362,6 +422,9 @@ var Hoverable = (function(){
 			if(isImageLink(href, siteModule)) {
 				media.src = href;
 				return media;
+			}
+			else if (isVideoLink(href, siteModule)) {
+
 			}
 			else {
 				if(siteModule) return siteModule.process(target);
@@ -447,6 +510,19 @@ var Hoverable = (function(){
 		}
 	};
 
+	var isVideoLink = function(url, siteModule) {
+		var isException = false;
+		if(siteModule && siteModule.videoLinkException) {
+			isException = siteModule.videoLinkException(url);
+		}
+
+		if(isException) {
+			return false;
+		} else {
+			return (/\.(m4v|mp4|webm)/ig).test(url);
+		}
+	}
+
 	var fetchResponse = function(url) {
 		var result = $.ajax({ url: url, async: false });
 		return result.responseText;
@@ -477,6 +553,9 @@ var Hoverable = (function(){
 
 	var siteModules = {
 		"imgur.com" : {
+			imgLinkException : function(target) {
+				return true;
+			},
 			process : function(target) {
 				var APIKey = 'fe266bc9466fe69aa1cf0904e7298eda'; //actually RES's key. 
 				var apiPrefix ='http://api.imgur.com/2/';
@@ -491,44 +570,35 @@ var Hoverable = (function(){
 				var groups = hashRe.exec(href);
 				if(!groups) {
 					media.type = mediaTypes.album;
-
 					var albumGroups = albumHashRe.exec(href);
-					
 					var apiURL = apiPrefix + 'album/' + albumGroups[1] + '.json';
-
 					var raw_result = $.ajax({ url : apiURL, dataType: "json", async: false });
-
 					var data = parseJsonResult(raw_result.responseText);
 					media.images = [];
-
 					for(var i = 0; i < data.album.images.length; i++) {
 						var imgData = data.album.images[i];
 						var src = imgData.links.original;
 						media.images.push(src);
 					}
-				} else if(groups && !groups[2]) {
-					//normal imgur link (non album)
+				} else if(groups) {
 					var hashes = groups[1].split(/[&,]/);
-					media.type = mediaTypes.image;
-					media.src = 'http://i.imgur.com/' + hashes[0] + '.jpg'
+					var hash = hashes[0];
+
+					var isGif = groups[2] == ".gif";
+					//normal imgur link (non album)
+					if(isGif) {
+						media.type = mediaTypes.video;
+						media.src_webm = 'http://i.imgur.com/' + hashes[0] + '.webm'
+						media.src_mp4 = 'http://i.imgur.com/' + hashes[0] + '.mp4'
+					} else {
+						media.type = mediaTypes.image;
+						media.src = 'http://i.imgur.com/' + hashes[0] + '.jpg'
+					}
 				}
 
 				return media;
 			}
 		},
-		"tumblr.com" : {
-			process : function(target) {
-				var media = {};
-				media.type = mediaTypes.image;
-				var results = getHtml(target.href);
-				var page = $(results);
-
-				var photoDiv = page.find(".photo-wrap img");
-				media.src = photoDiv.attr("src");
-
-				return media;
-			}
-		}, 
 		"instagram.com" : {
 			process : function(target) {
 				var media = {};
@@ -581,53 +651,60 @@ var Hoverable = (function(){
 
 				return media;
 			}
-		},
-		"steampowered.com" : {
-			process : function(target) {
-				var media = {};
-
-				var cloudExpr = /^cloud(?:-\d)?.steampowered.com$/i;
-				if(cloudExpr.test(target.href)) {
-					media.type = mediaTypes.image;
-					media.src = target.href;
-				} else {
-					media.type = mediaTypes.invalid;
-				}
-
-				return media;
-			}
 		}, 
-		"wikipedia.org" : {
-			imgLinkException : function(url) {
-				return (/file:/ig).test(url);
-			},
+		"twitter.com" : {
+
+		}, 
+		"steam.com" : {
+
+		},
+		"gfycat.com" : {
 			process : function(target) {
+				var extract_id = function(href) {
+					var name = "";
+					for(var x = href.length - 1; x >= 0; x--) {
+						var c = href[x];
+
+						if(c == '/') {
+							return name;
+						} else {
+							name = c + name;
+						}
+						
+					}
+
+					return name;
+				};
+
 				var media = {};
+				media.type = mediaTypes.video;
 
-				var fileExpr = /file:/ig;
+				var name = extract_id(target.href);
+				var api_query = "http://gfycat.com/cajax/get/" + name;
 
-				var href = target.href;
+				var raw_result = $.ajax({ url : api_query, dataType: "json", async: false });
+				var data = parseJsonResult(raw_result.responseText);
 
-				if(fileExpr.test(href)) {
-					var results = getHtml(href);
-					var page = $(results);
+				var gfy = data.gfyItem;
 
-					var imgDiv = page.find("div.fullImageLink");
-					var imgLink = imgDiv.find("a")[0];
+				media.src_webm = gfy.webmUrl;
+				media.src_mp4 = gfy.mp4Url;
 
-					media.type = mediaTypes.image;
-					media.src = $(imgLink).attr("href");
-				}
-				else {
-					media.type = mediaTypes.invalid;
-				}
 				return media;
 			}
 		}
 	};
 
+	hvr.handleKey = function(e) {
+		if (e.keyCode == 27) {
+			cancelAllTimers();
+	        hvr.hide();
+	    }
+	};
+
 	$(hvr.media).append(hvr.loader);
 	$(hvr.media).append(hvr.img);
+	$(hvr.media).append(hvr.video);
 	$(hvr.container).append(hvr.media);
 
 	$(window).on('mousemove', 'body', function(e) {
@@ -664,6 +741,7 @@ var Hoverable = (function(){
 	$(document.body)
 		.on('mouseover', 	'a, img', {}, hvr.onMouseOver)
 		.on('mouseout', 	'a, img', {}, hvr.onMouseOut);
+	$(document).on("keydown", hvr.handleKey);
 
 	return hvr;
 })();

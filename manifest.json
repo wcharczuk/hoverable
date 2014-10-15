@@ -1,7 +1,7 @@
 {
 	"name": "Hoverable",
 	"short_name" : "Hoverable",
-	"version": "0.6",
+	"version": "0.8",
 	"manifest_version": 2,
 	"description": "Hoverable - automatically enlarge photo links.",
 	"background": {
@@ -41,6 +41,7 @@
 		"http://goo.gl/*",
 		"http://bit.ly/*",
 		"http://tiny.cc/*",
-		"http://*.wikipedia.org/*"
+		"http://*.wikipedia.org/*",
+		"http://*.gfycat.com/*"
 	]
 }
