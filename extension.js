@@ -553,7 +553,7 @@ var Hoverable = (function(){
 			process : function(target) {
 				var APIKey = 'fe266bc9466fe69aa1cf0904e7298eda'; //actually RES's key. 
 				var apiPrefix ='http://api.imgur.com/2/';
-				var hashRe = /^https?:\/\/(?:i\.|m\.|edge\.|www\.)*imgur\.com\/(?!gallery)(?!removalrequest)(?!random)(?!memegen)([A-Za-z0-9]{5}|[A-Za-z0-9]{7})[sbtmlh]?(\.(?:jpe?g|gif|png))?(\?.*)?$/i;
+				var hashRe = /^https?:\/\/(?:i\.|m\.|edge\.|www\.)*imgur\.com\/(?!gallery)(?!removalrequest)(?!random)(?!memegen)([A-Za-z0-9]{5}|[A-Za-z0-9]{7})[sbtmlh]?(\.(?:jpe?g|gif|png|gifv))?(\?.*)?$/i;
 				var albumHashRe = /^https?:\/\/(?:i\.|m\.)?imgur\.com\/(?:a|gallery)\/([\w]+)(\..+)?(?:\/)?(?:#\w*)?$/i;
 
 				var media = {};
@@ -578,7 +578,7 @@ var Hoverable = (function(){
 					var hashes = groups[1].split(/[&,]/);
 					var hash = hashes[0];
 
-					var isGif = groups[2] == ".gif";
+					var isGif = groups[2] == ".gif" || groups[2] == ".gifv";
 					//normal imgur link (non album)
 					if(isGif) {
 						media.type = mediaTypes.video;
